@@ -1,10 +1,11 @@
 {
   "name": "4DAnyone (CUDA 12.8, Python 3.11, Claude Code)",
-  "build": { "dockerfile": "Dockerfile" },
+  // To disable the outbound firewall, set ENABLE_FIREWALL to "0" and rebuild the container.
+  "build": { "dockerfile": "Dockerfile", "args": { "ENABLE_FIREWALL": "1" } },
 
   // Requires an NVIDIA GPU + NVIDIA Container Toolkit on the Docker host.
   "hostRequirements": { "gpu": "optional" },
-  "runArgs": ["--gpus", "all", "--shm-size=16g", "--ipc=host"],
+  "runArgs": ["--gpus", "all", "--shm-size=16g", "--ipc=host", "--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
 
   "features": {
     "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
@@ -27,7 +28,9 @@
     "source=4danyone-claude-config,target=/home/vscode/.claude,type=volume"
   ],
 
+  // Install runs first (open network); the firewall is enabled on every start afterwards.
   "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "sudo /usr/local/sbin/init-firewall.sh",
 
   "forwardPorts": [7860],
   "portsAttributes": { "7860": { "label": "4DAnyone GUI (Gradio)" } },

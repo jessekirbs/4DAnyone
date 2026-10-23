@@ -2,9 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# Fix ownership of volume mounts (created as root by Docker)
-sudo chown -R "$(id -u):$(id -g)" ~/.cache ~/.claude 2>/dev/null || true
-
 git config --global --add safe.directory "$PWD"
 git submodule update --init third_party/GVHMR
 

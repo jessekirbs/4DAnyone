@@ -1,0 +1,45 @@
+# Outbound allowlist for the dev container firewall (one hostname per line).
+# GitHub's published IP ranges are added automatically by init-firewall.sh.
+
+# --- Claude Code ---
+api.anthropic.com
+statsig.anthropic.com
+statsig.com
+sentry.io
+claude.ai
+console.anthropic.com
+platform.claude.com
+registry.npmjs.org
+
+# --- VS Code (extensions, server updates) ---
+marketplace.visualstudio.com
+update.code.visualstudio.com
+vscode.blob.core.windows.net
+gallery.vsassets.io
+az764295.vo.msecnd.net
+
+# --- GitHub (git, submodule, release assets such as ultralytics weights) ---
+github.com
+api.github.com
+raw.githubusercontent.com
+objects.githubusercontent.com
+release-assets.githubusercontent.com
+codeload.github.com
+
+# --- Python packages ---
+pypi.org
+files.pythonhosted.org
+astral.sh
+download.pytorch.org
+
+# --- Model weights and examples (Hugging Face, incl. Xet CDN) ---
+huggingface.co
+cdn-lfs.huggingface.co
+cdn-lfs.hf.co
+cdn-lfs-us-1.hf.co
+cas-bridge.xethub.hf.co
+transfer.xethub.hf.co
+
+# --- SMPL-X body model (scripts/download_smplx.py) ---
+smpl-x.is.tue.mpg.de
+download.is.tue.mpg.de
