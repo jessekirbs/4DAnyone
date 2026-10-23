@@ -1,0 +1,48 @@
+{
+  "name": "4DAnyone (CUDA 12.8, Python 3.11, Claude Code)",
+  "build": { "dockerfile": "Dockerfile" },
+
+  // Requires an NVIDIA GPU + NVIDIA Container Toolkit on the Docker host.
+  "hostRequirements": { "gpu": "optional" },
+  "runArgs": ["--gpus", "all", "--shm-size=16g", "--ipc=host"],
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "VIRTUAL_ENV": "${containerWorkspaceFolder}/.venv",
+    "HF_HOME": "/home/vscode/.cache/huggingface"
+  },
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/.venv/bin:${containerEnv:PATH}"
+  },
+
+  // Persist model downloads, pip/uv caches and Claude Code login across rebuilds
+  "mounts": [
+    "source=4danyone-hf-cache,target=/home/vscode/.cache/huggingface,type=volume",
+    "source=4danyone-uv-cache,target=/home/vscode/.cache/uv,type=volume",
+    "source=4danyone-claude-config,target=/home/vscode/.claude,type=volume"
+  ],
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  "forwardPorts": [7860],
+  "portsAttributes": { "7860": { "label": "4DAnyone GUI (Gradio)" } },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "python.terminal.activateEnvironment": true
+      }
+    }
+  }
+}
