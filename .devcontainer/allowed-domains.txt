@@ -38,7 +38,10 @@ cdn-lfs.huggingface.co
 cdn-lfs.hf.co
 cdn-lfs-us-1.hf.co
 cas-bridge.xethub.hf.co
+cas-server.xethub.hf.co
 transfer.xethub.hf.co
+us.aws.cdn.hf.co
+us.gcp.cdn.hf.co
 
 # --- SMPL-X body model (scripts/download_smplx.py) ---
 smpl-x.is.tue.mpg.de
