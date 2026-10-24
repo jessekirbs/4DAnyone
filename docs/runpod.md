@@ -1,8 +1,8 @@
 # Running on RunPod
 
 Working notes for running `inference.py` on a rented RunPod GPU, written 2026-10-23.
-**Status: not tried yet.** This is the plan, not a verified recipe; update it with what
-actually happened.
+**Status: working** (verified 2026-10-24 on an RTX 6000 Ada 48 GB pod; see
+[First run](#first-run-2026-10-24)).
 
 ## Why RunPod
 
@@ -28,10 +28,25 @@ tied to one region.
 The dev container (`.devcontainer/`) isn't used on the pod. Its outbound firewall is for local
 development and isn't needed here.
 
+`nvidia-smi` on the pod may report a newer CUDA version (13.2 on the first run). That is the
+newest version the driver supports, not the one in use; the cu128 torch wheels run fine on it.
+
+### SSH troubleshooting
+
+- **Asks for a root password:** the key wasn't accepted, and there is no password to enter. On the
+  first run `~/.ssh/authorized_keys` contained the literal word `null`, because the key hadn't been
+  saved under Settings → SSH Public Keys when the pod started. Fix it from the web terminal with
+  `echo '<full ssh-ed25519 line>' > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`
+  (pasting there needs Ctrl+Shift+V), or save the key in Settings and restart the pod.
+- **`kex_exchange_identification: Connection reset`:** `sshd` isn't up yet or the port is stale.
+  After a restart the IP and port change, so copy the command from the Connect tab again.
+- From Windows PowerShell, pass the key explicitly:
+  `ssh root@<ip> -p <port> -i $env:USERPROFILE\.ssh\id_ed25519`.
+
 ## Setup
 
 ```bash
-apt-get update && apt-get install -y ffmpeg git-lfs libgl1 libglib2.0-0
+apt-get update && apt-get install -y ffmpeg git-lfs libgl1 libglib2.0-0 python3.11-tk
 curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env
 
 cd /workspace
@@ -49,21 +64,29 @@ python scripts/download_example.py
 python -c "import torch; print(torch.cuda.get_device_name(), torch.cuda.is_available())"
 ```
 
+`python3.11-tk` is needed because GVHMR's `hmr4d/utils/body_model/body_model.py` has a stray
+`from turtle import forward`, and `turtle` imports `tkinter`. Without it, GVHMR preprocessing
+fails a few seconds in with `ModuleNotFoundError: No module named 'tkinter'`.
+
 Put the `export HF_HOME=...` line in `~/.bashrc` on the pod, or later shells will download
 the models again into the container disk.
 
 ### SMPL-X
 
-SMPL-X is licensed separately, so copy `models/body_models/smplx/SMPLX_NEUTRAL.npz` from the
-local machine instead of downloading it again:
+SMPL-X is licensed separately, so copy `SMPLX_NEUTRAL.npz` (about 104 MB) from the local machine
+instead of downloading it again. The local dev container keeps the repo in a Docker volume, so
+Windows can't see `models/` directly: download the file first (VS Code Explorer → right-click →
+Download, or `docker cp <container>:/workspaces/4DAnyone/models/body_models/smplx/SMPLX_NEUTRAL.npz .`),
+or use the copy from the original SMPL-X download. Then, from PowerShell:
+
+```powershell
+ssh root@<ip> -p <port> -i $env:USERPROFILE\.ssh\id_ed25519 "mkdir -p /workspace/4DAnyone/models/body_models/smplx"
+scp -P <port> -i $env:USERPROFILE\.ssh\id_ed25519 .\SMPLX_NEUTRAL.npz root@<ip>:/workspace/4DAnyone/models/body_models/smplx/
+```
+
+Then, on the pod:
 
 ```bash
-# local machine
-runpodctl send models/body_models/smplx/SMPLX_NEUTRAL.npz
-
-# pod
-mkdir -p models/body_models/smplx && cd models/body_models/smplx
-runpodctl receive <code> && cd /workspace/4DAnyone
 python scripts/download_smplx.py     # finds the file and creates the GVHMR links
 ```
 
@@ -84,6 +107,25 @@ python inference.py --video_path data/source/pexels/7017803-hd_1080_1920_30fps.m
 - Timings and peak memory are written to `outputs/runpod1/metadata.json`; compare them with
   [inference_performance.md](inference_performance.md).
 - If `download_example.py` didn't fetch the clip, copy it over with `runpodctl send`.
+
+## First run (2026-10-24)
+
+RTX 6000 Ada 48 GB, driver 595.91.07 (CUDA 13.2), US-WA-1, with the test command above. Results
+are in `outputs/runpod1` and the log is in `outputs/runpod1.log`.
+
+| | Runpod (RTX 6000 Ada) | Benchmark (RTX 4090, native Linux) |
+|---|---:|---:|
+| Generation, 4 steps, SDPA | 2.8 min (about 42 s/step) | 2.71 min |
+| Peak CUDA allocated | 21.91 GB | 22.18 GB |
+| Peak CUDA reserved | 33.32 GB | — |
+| Whole pipeline | 8.2 min | — |
+
+- Preprocessing and skeleton loading took about 2 min before generation started. Writing the six
+  target cameras took about 2.5 min after it finished.
+- Peak reserved (33.3 GB) isn't the job's real requirement: on a 48 GB card the allocator caches
+  freely, and `inference.py` only enables its low-memory settings on 24 GB-class GPUs. Peak
+  allocated is the figure to compare, and it matches the benchmark.
+- The benchmark used a different clip (2785536), so the times are only roughly comparable.
 
 ## Results and the GUI
 
