@@ -17,6 +17,11 @@ outputs/
 /data/gvhmr/
 /data/nerfstudio/
 /data/ns_data/
+/data/ns_outputs/
+/data/ns_exports/
+/data/source/custom/
+/.venv-ns/
+/ns-constraints.txt
 /data/.download/
 .download-*/
 /data/source/pexels/*.mp4
